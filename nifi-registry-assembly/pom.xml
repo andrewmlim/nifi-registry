@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-registry-assembly</artifactId>
     <packaging>pom</packaging>
@@ -114,7 +114,7 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-docs</artifactId>
             <type>war</type>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.4.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -126,7 +126,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-docs</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.4.0-SNAPSHOT</version>
             <classifier>resources</classifier>
             <scope>runtime</scope>
             <type>zip</type>
@@ -137,7 +137,7 @@
         <!-- nifi-registry.properties: web properties -->
         <nifi.registry.web.war.directory>./lib</nifi.registry.web.war.directory>
         <nifi.registry.web.http.host />
-        <nifi.registry.web.http.port>8080</nifi.registry.web.http.port>
+        <nifi.registry.web.http.port>18080</nifi.registry.web.http.port>
         <nifi.registry.web.https.host />
         <nifi.registry.web.https.port />
         <nifi.registry.jetty.work.dir>./work/jetty</nifi.registry.jetty.work.dir>
@@ -160,9 +160,25 @@
         <!-- nifi-registry.properties: provider properties -->
         <nifi.registry.providers.configuration.file>./conf/providers.xml</nifi.registry.providers.configuration.file>
 
+        <!-- nifi-registry.properties: registry alias properties -->
+        <nifi.registry.registry.alias.configuration.file>./conf/registry-aliases.xml</nifi.registry.registry.alias.configuration.file>
+
+        <!-- nifi-registry.properties: extension properties -->
+        <nifi.registry.extensions.working.directory>./work/extensions</nifi.registry.extensions.working.directory>
+        <nifi.registry.extension.dir.aws></nifi.registry.extension.dir.aws>
+
+        <!-- nifi-registry.properties: legacy database properties, used to migrate data from old DB to the new DB below -->
+        <nifi.registry.db.directory />
+        <nifi.registry.db.url.append />
+
         <!-- nifi-registry.properties: database properties -->
-        <nifi.registry.db.directory>./database</nifi.registry.db.directory>
-        <nifi.registry.db.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.registry.db.url.append>
+        <nifi.registry.db.url>jdbc:h2:./database/nifi-registry-primary;AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.registry.db.url>
+        <nifi.registry.db.driver.class>org.h2.Driver</nifi.registry.db.driver.class>
+        <nifi.registry.db.driver.directory />
+        <nifi.registry.db.username>nifireg</nifi.registry.db.username>
+        <nifi.registry.db.password>nifireg</nifi.registry.db.password>
+        <nifi.registry.db.maxConnections>5</nifi.registry.db.maxConnections>
+        <nifi.registry.db.sql.debug>false</nifi.registry.db.sql.debug>
 
         <!-- nifi-registry.properties: kerberos properties -->
         <nifi.registry.kerberos.krb5.file />
@@ -363,6 +379,87 @@
                                             </sources>
                                         </mapping>
                                     </mappings>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>include-ranger</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi.registry</groupId>
+                    <artifactId>nifi-registry-ranger-assembly</artifactId>
+                    <version>0.4.0-SNAPSHOT</version>
+                    <classifier>bin</classifier>
+                    <scope>runtime</scope>
+                    <type>zip</type>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>unpack-ranger-extensions</id>
+                                <goals>
+                                    <goal>unpack-dependencies</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/ext/ranger</outputDirectory>
+                                    <includeGroupIds>org.apache.nifi.registry</includeGroupIds>
+                                    <includeArtifactIds>nifi-registry-ranger-assembly</includeArtifactIds>
+                                    <excludeTransitive>false</excludeTransitive>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>include-aws</id>
+            <activation>
+                <property>
+                    <name>!skipAws</name>
+                </property>
+            </activation>
+            <properties>
+                <nifi.registry.extension.dir.aws>./ext/aws/lib</nifi.registry.extension.dir.aws>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi.registry</groupId>
+                    <artifactId>nifi-registry-aws-assembly</artifactId>
+                    <version>0.4.0-SNAPSHOT</version>
+                    <classifier>bin</classifier>
+                    <scope>runtime</scope>
+                    <type>zip</type>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>unpack-aws-extensions</id>
+                                <goals>
+                                    <goal>unpack-dependencies</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/ext/aws</outputDirectory>
+                                    <includeGroupIds>org.apache.nifi.registry</includeGroupIds>
+                                    <includeArtifactIds>nifi-registry-aws-assembly</includeArtifactIds>
+                                    <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
                         </executions>
