@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.ui;
 
+import org.apache.nifi.registry.web.api.UnsecuredITBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +38,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class ITCreateBucket {
+public class ITCreateBucket extends UnsecuredITBase {
     private WebDriver driver;
     private String baseUrl;
     private boolean acceptNextAlert = true;
@@ -48,7 +49,7 @@ public class ITCreateBucket {
     public void setUp() throws Exception {
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
-        baseUrl = "http://localhost:18080/nifi-registry";
+        baseUrl = createBaseURL()+"/nifi-registry";
         wait = new WebDriverWait(driver, 30);
     }
 

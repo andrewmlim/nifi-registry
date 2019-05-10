@@ -30,6 +30,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
 import javax.annotation.PostConstruct;
 import javax.net.ssl.HostnameVerifier;
@@ -140,7 +142,7 @@ public abstract class IntegrationTestBase {
      *
      * @return a string containing the base url which includes the scheme, host, and port
      */
-    String createBaseURL() {
+    protected String createBaseURL() {
         final boolean isSecure = this.properties.getSslPort() != null;
         final String protocolSchema = isSecure ? "https" : "http";
 
@@ -178,7 +180,13 @@ public abstract class IntegrationTestBase {
         try (final FileReader reader = new FileReader(propertiesFilePath)) {
             properties.load(reader);
         } catch (final IOException ioe) {
-            throw new RuntimeException("Unable to load properties: " + ioe, ioe);
+            // fallback to checking the classpath
+            Resource resource = new ClassPathResource(propertiesFilePath);
+            try (final FileReader reader = new FileReader(resource.getFile())) {
+                properties.load(reader);
+            } catch (final IOException ioe2) {
+                throw new RuntimeException("Unable to load properties: " + ioe2, ioe2);
+            }
         }
         return properties;
     }
